@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drink Tracker</title>
+
+<style>
+:root{
+    --bg:#f2f2f7;
+    --card:#ffffff;
+    --primary:#007aff;
+    --beer:#f2c94c;
+    --danger:#ff3b30;
+    --text:#1c1c1e;
+    --secondary:#6c6c70;
+    --radius:18px;
+}
+
+body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+}
+
+header{
+    padding:20px;
+    font-size:22px;
+    font-weight:600;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.nav-btn{
+    background:none;
+    border:none;
+    color:var(--primary);
+    font-weight:600;
+    font-size:16px;
+}
+
+.container{ padding:16px; }
+
+.card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:18px;
+    margin-bottom:16px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.05);
+}
+
+.section-title{
+    font-weight:600;
+    margin-bottom:12px;
+}
+
+button{
+    padding:12px;
+    border-radius:14px;
+    border:none;
+    font-size:15px;
+    font-weight:600;
+    width:100%;
+    margin-top:8px;
+    cursor:pointer;
+}
+
+.primary{ background:var(--primary); color:white; }
+.danger{ background:var(--danger); color:white; width:auto; padding:6px 10px; }
+
+.fav-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.fav-btn{
+    background:#e5e5ea;
+    transition:0.2s;
+}
+
+.fav-btn.active{
+    background:var(--primary);
+    color:white;
+    transform:scale(0.97);
+}
+
+.progress-container{
+    background:#e5e5ea;
+    border-radius:12px;
+    height:12px;
+    margin-top:10px;
+    overflow:hidden;
+}
+
+.progress-bar{
+    height:100%;
+    width:100%;
+    background:var(--beer);
+    transition:width 1s linear;
+}
+
+.row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:6px 0;
+    border-bottom:1px solid #f0f0f0;
+}
+
+input, select, textarea{
+    width:100%;
+    padding:10px;
+    border-radius:12px;
+    border:1px solid #ddd;
+    margin-top:6px;
+    font-size:14px;
+}
+
+.hidden{ display:none; }
+
+.button-row{
+    display:flex;
+    gap:10px;
+}
+
+.button-row button{
+    flex:1;
+    margin-top:0;
+}
+</style>
+</head>
+<body>
+
+<header>
+<span id="pageTitle">Drink Tracker</span>
+<button class="nav-btn" onclick="goHome()">Start</button>
+</header>
+
+<!-- HOME -->
+<div id="homePage" class="container">
+
+<!-- Letztes Getränk -->
+<div class="card">
+<div class="section-title">Letztes Getränk</div>
+<div id="lastDrink">Noch kein Eintrag</div>
+<div class="progress-container">
+<div class="progress-bar" id="progressBar"></div>
+</div>
+</div>
+
+<!-- Favoriten -->
+<div class="card">
+<div class="section-title">Favoriten</div>
+<div class="fav-grid" id="favorites"></div>
+</div>
+
+<!-- Hauptbuttons mit Unterauswahl -->
+<div class="card">
+<div class="section-title">Getränke schnell auswählen</div>
+<div class="fav-grid">
+    <button onclick="showSubDrinks('Bier')">Bier</button>
+    <button onclick="showSubDrinks('Wein')">Wein</button>
+    <button onclick="showSubDrinks('Schnaps')">Schnaps</button>
+    <button onclick="showSubDrinks('Longdrink')">Longdrink</button>
+</div>
+
+<!-- Querstrich als Design -->
+<hr style="margin:12px 0; border:0; border-top:1px solid #ccc;">
+
+<div id="subDrinkContainer" class="hidden">
+    <div id="subButtons" class="fav-grid"></div>
+    <input type="number" id="subVolume" placeholder="Volumen in ml">
+    <input type="number" id="subAlcohol" placeholder="Alkoholgehalt %" step="0.1" min="0" max="100">
+    <textarea id="subComment" placeholder="Kommentar (optional)"></textarea>
+    <button class="primary" onclick="addSubDrink()">Hinzufügen</button>
+</div>
+</div>
+
+
+
+<!-- Navigation -->
+<div class="card button-row">
+<button onclick="showStats()">Statistik anzeigen</button>
+<button onclick="showList()">Alle Einträge</button>
+<button onclick="showEdit()">Bearbeiten</button>
+</div>
+</div>
+
+<!-- STATISTIK -->
+<div id="statsPage" class="container hidden">
+<div class="card">
+<div class="section-title">Statistik</div>
+<div id="statsContent"></div>
+</div>
+</div>
+
+<!-- LISTE -->
+<div id="listPage" class="container hidden">
+<div class="card">
+<div class="section-title">Alle Einträge</div>
+<div id="drinkList"></div>
+</div>
+</div>
+
+<!-- EDIT -->
+<div id="editPage" class="container hidden">
+<div class="card">
+<div class="section-title">Neuen Eintrag hinzufügen</div>
+<select id="editDrink">
+<option>Bier</option>
+<option>Weißbier</option>
+<option>Spritzer</option>
+<option>Wein</option>
+<option>Sturm</option>
+<option>Glühwein</option>
+<option>Punsch</option>
+<option>Cocktail</option>
+<option>Schnaps</option>
+<option>Likör</option>
+<option>Jägermeister</option>
+<option>Jaga Muuh</option>
+<option>Longdrink</option>
+<option>Cola Bacardi</option>
+<option>Schiwossa</option>
+<option>Cappy Vodka</option>
+<option>Cappy Malibu</option>
+</select>
+<input type="number" id="editVolume" placeholder="Volumen in ml">
+<input type="number" id="editAlcohol" placeholder="Alkoholgehalt %" step="0.1" min="0" max="100">
+<div style="display:flex; gap:10px;">
+    <input type="date" id="editDate" style="flex:1">
+    <input type="time" id="editTime" style="flex:1" step="60">
+</div>
+<textarea id="editComment" placeholder="Kommentar (optional)"></textarea>
+<button class="primary" onclick="addManualEntry()">Speichern</button>
+</div>
+
+<div class="card">
+<div class="section-title">Einträge löschen</div>
+<div id="editList"></div>
+</div>
+</div>
+
+<script>
+// IndexedDB
+let db;
+let countdownInterval = null;
+
+const FAVORITES = [
+    {name:"Bier",volume:500, alcohol:5},
+    {name:"Bier",volume:330, alcohol:5},
+    {name:"Spritzer",volume:250, alcohol:5},
+    {name:"Weißwein",volume:125, alcohol:12},
+    {name:"Schnaps",volume:20, alcohol:40},
+    {name:"Longdrink",volume:150, alcohol:8},
+];
+
+// Untergetränke mit Standardvolumen und Alkoholgehalt
+const SUB_DRINKS = {
+    "Bier": [
+        {name:"Bier",volume:500, alcohol:5},
+        {name:"Weißbier",volume:500, alcohol:5.2}
+    ],
+    "Wein": [
+        {name:"Weißwein",volume:125, alcohol:12},
+        {name:"Rotwein",volume:125, alcohol:13},
+        {name:"Roséwein",volume:125, alcohol:11.5},
+        {name:"Schaumwein",volume:125, alcohol:11},
+        {name:"Spritzer",volume:250, alcohol:5}
+    ],
+    "Schnaps": [
+        {name:"Schnaps",volume:20, alcohol:40},
+        {name:"Likör",volume:20, alcohol:25},
+        {name:"Jägermeister",volume:20, alcohol:35},
+        {name:"Jaga Muuh",volume:20, alcohol:35}
+    ],
+    "Longdrink": [
+        {name:"Longdrink",volume:150, alcohol:8},
+        {name:"Cola Bacardi",volume:150, alcohol:8},
+        {name:"Schiwossa",volume:150, alcohol:8},
+        {name:"Cappy Vodka",volume:150, alcohol:8},
+        {name:"Cappy Malibu",volume:150, alcohol:5}
+    ]
+};
+
+let selectedSubDrink = null;
+
+// IndexedDB Setup
+const request = indexedDB.open("DrinkDB",1);
+request.onupgradeneeded = function(e){
+    db = e.target.result;
+    db.createObjectStore("consumptions",{keyPath:"id",autoIncrement:true});
+};
+request.onsuccess = function(e){
+    db = e.target.result;
+    renderFavorites();
+    loadLastDrink();
+};
+
+// FAVORITEN
+function renderFavorites(){
+    const container = document.getElementById("favorites");
+    container.innerHTML = "";
+    FAVORITES.forEach(fav=>{
+        const btn = document.createElement("button");
+        btn.className = "fav-btn";
+        btn.textContent = `${fav.name} ${fav.volume}ml`;
+        btn.onclick = ()=>{
+            highlight(btn);
+            addConsumption(fav.name,fav.volume,new Date(),"", fav.alcohol);
+        };
+        container.appendChild(btn);
+    });
+}
+
+function highlight(btn){
+    btn.classList.add("active");
+    setTimeout(()=>btn.classList.remove("active"),200);
+}
+
+// KONSUM HINZUFÜGEN
+function addConsumption(name,volume,date,comment,alcohol=0){
+    const tx = db.transaction("consumptions","readwrite");
+    tx.objectStore("consumptions").add({
+        name,
+        volume,
+        timestamp: date.toISOString(),
+        comment,
+        alcohol
+    });
+    tx.oncomplete = () => loadLastDrink();
+}
+
+// UNTERKATEGORIEN ANZEIGEN
+function showSubDrinks(category){
+    const container = document.getElementById("subDrinkContainer");
+    const buttonsDiv = document.getElementById("subButtons");
+    buttonsDiv.innerHTML = "";
+    SUB_DRINKS[category].forEach(drink=>{
+        const btn = document.createElement("button");
+        btn.textContent = drink.name;
+        btn.style.background="#e5e5ea"; 
+        btn.style.color="#6c6c70";
+        btn.onclick = ()=>{
+            selectedSubDrink = drink;
+            highlight(btn);
+            document.getElementById("subVolume").value = drink.volume;
+            document.getElementById("subAlcohol").value = drink.alcohol; // Vorschlag
+        };
+        buttonsDiv.appendChild(btn);
+    });
+    container.classList.remove("hidden");
+    document.getElementById("subVolume").value="";
+    document.getElementById("subComment").value="";
+    document.getElementById("subAlcohol").value="";
+}
+
+// UNTERGETRÄNK HINZUFÜGEN
+function addSubDrink(){
+    const volume = Number(document.getElementById("subVolume").value);
+    const comment = document.getElementById("subComment").value;
+    const alcohol = parseFloat(document.getElementById("subAlcohol").value) || 0;
+    if(!volume || !selectedSubDrink) return;
+    addConsumption(selectedSubDrink.name, volume, new Date(), comment, alcohol);
+    document.getElementById("subVolume").value="";
+    document.getElementById("subComment").value="";
+    document.getElementById("subAlcohol").value="";
+    document.getElementById("subDrinkContainer").classList.add("hidden");
+    selectedSubDrink = null;
+    loadEditList();
+}
+
+// MANUELLER EINTRAG
+function addManualEntry(){
+    const name = document.getElementById("editDrink").value;
+    const volume = Number(document.getElementById("editVolume").value);
+    const comment = document.getElementById("editComment").value;
+    const alcohol = parseFloat(document.getElementById("editAlcohol").value) || 0;
+
+    // Datum + Uhrzeit aus zwei Feldern
+    const dateStr = document.getElementById("editDate").value; // yyyy-mm-dd
+    const timeStr = document.getElementById("editTime").value; // hh:mm
+    if(!volume || !dateStr || !timeStr) return;
+
+    const [year, month, day] = dateStr.split("-");
+    const [hours, minutes] = timeStr.split(":");
+    const date = new Date(year, month-1, day, hours, minutes);
+
+    addConsumption(name, volume, date, comment, alcohol);
+    loadEditList();
+}
+
+// LETZTES GETRÄNK
+function loadLastDrink(){
+    const tx = db.transaction("consumptions","readonly");
+    const store = tx.objectStore("consumptions");
+    store.openCursor(null,"prev").onsuccess=function(e){
+        const cursor = e.target.result;
+        if(cursor){
+            const entry = cursor.value;
+            const time = new Date(entry.timestamp);
+            const now = new Date();
+            const diffDays = Math.floor((now-time)/(24*60*60*1000));
+            let dateLabel;
+            if(diffDays===0) dateLabel="Heute";
+            else if(diffDays===1) dateLabel="Gestern";
+            else if(diffDays===2) dateLabel="Vorgestern";
+            else dateLabel = String(time.getDate()).padStart(2,'0')+"."+
+                            String(time.getMonth()+1).padStart(2,'0')+"."+
+                            time.getFullYear(); // dd.mm.yyyy
+
+            const hours = String(time.getHours()).padStart(2,'0'); // 24h Format
+            const minutes = String(time.getMinutes()).padStart(2,'0');
+
+            document.getElementById("lastDrink").textContent =
+                `${entry.name} ${entry.volume}ml - ${dateLabel} um ${hours}:${minutes}`;
+            startCountdown(time);
+        }
+    };
+}
+
+function startCountdown(startTime){
+    if(countdownInterval) clearInterval(countdownInterval);
+    const duration = 15*60*1000;
+    const end = startTime.getTime() + duration;
+    const bar = document.getElementById("progressBar");
+    function update(){
+        const remaining = end - Date.now();
+        const percent = Math.max(0,remaining/duration)*100;
+        bar.style.width = percent + "%";
+        if(remaining<=0) clearInterval(countdownInterval);
+    }
+    update();
+    countdownInterval=setInterval(update,1000);
+}
+
+// NAVIGATION
+function showStats(){ switchPage("statsPage","Statistik"); updateStatsStructured(); }
+function showList(){ switchPage("listPage","Alle Einträge"); loadList(); }
+function showEdit(){ switchPage("editPage","Bearbeiten"); loadEditList(); }
+function goHome(){ switchPage("homePage","Drink Tracker"); }
+function switchPage(id,title){
+    ["homePage","statsPage","listPage","editPage"].forEach(p=>document.getElementById(p).classList.add("hidden"));
+    document.getElementById(id).classList.remove("hidden");
+    document.getElementById("pageTitle").textContent=title;
+}
+
+// STATISTIK MIT ALKOHOL IN GRAMM
+// STATISTIK MIT ALKOHOL IN GRAMM
+function updateStatsStructured() {
+    const tx = db.transaction("consumptions", "readonly");
+    const store = tx.objectStore("consumptions");
+    const content = document.getElementById("statsContent");
+    content.innerHTML = "";
+
+    const now = new Date();
+    const stats = { today: {}, week: {}, month: {}, year: {} };
+
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now.getTime() - 7*24*60*60*1000);
+    const monthStart = new Date(now.getTime() - 30*24*60*60*1000);
+    const yearStart = new Date(now.getTime() - 365*24*60*60*1000);
+
+    const daySets = { week: new Set(), month: new Set(), year: new Set() };
+
+    store.openCursor().onsuccess = function(e) {
+        const cursor = e.target.result;
+        if(cursor){
+            const c = cursor.value;
+            const time = new Date(c.timestamp);
+            const dayKey = `${time.getFullYear()}-${time.getMonth()}-${time.getDate()}`;
+
+            if(time >= todayStart) accumulateStructured(stats.today, c);
+            if(time >= weekStart){
+                accumulateStructured(stats.week, c);
+                daySets.week.add(dayKey);
+            }
+            if(time >= monthStart){
+                accumulateStructured(stats.month, c);
+                daySets.month.add(dayKey);
+            }
+            if(time >= yearStart){
+                accumulateStructured(stats.year, c);
+                daySets.year.add(dayKey);
+            }
+
+            cursor.continue();
+        } else {
+            const periods = [
+                { key: "today", name: "Heute", daysSet: null },
+                { key: "week", name: "Letzte 7 Tage", daysSet: daySets.week },
+                { key: "month", name: "Letzte 30 Tage", daysSet: daySets.month },
+                { key: "year", name: "Letzte 365 Tage", daysSet: daySets.year }
+            ];
+
+            periods.forEach((p, idx) => {
+                let totalAlcoholPeriod = 0;
+                for(let main of ["Bier","Wein","Schnaps","Longdrink"]){
+                    if(!stats[p.key][main]) continue;
+                    let mainObj = stats[p.key][main];
+                    for(let sub in mainObj){
+                        totalAlcoholPeriod += mainObj[sub].count * mainObj[sub].volume * (mainObj[sub].alcohol/100) * 0.789;
+                    }
+                }
+
+                let avgPerDay = "";
+                if(p.daysSet && p.daysSet.size>0){
+                    avgPerDay = ` / ∅ ${(totalAlcoholPeriod/p.daysSet.size).toFixed(1)}g pro Trinktag`;
+                }
+
+                content.innerHTML += `<div style="margin-top:15px;">
+                    <b>${p.name} – Gesamtalkohol: ${totalAlcoholPeriod.toFixed(1)}g${avgPerDay}</b>
+                </div>`;
+
+                // Detaillierte Aufschlüsselung nach Kategorien, nur Volumen/Anzahl, fett gedruckt
+                ["Bier", "Wein", "Schnaps", "Longdrink"].forEach(main => {
+                    if (!stats[p.key][main]) return;
+
+                    let mainObj = stats[p.key][main];
+                    let totalVolume = 0;
+                    let totalCount = 0;
+                    for (let sub in mainObj) {
+                        totalVolume += mainObj[sub].count * mainObj[sub].volume;
+                        totalCount += mainObj[sub].count;
+                    }
+
+                    // Hauptkategorie: Name + Anzahl/Volumen fett
+                    content.innerHTML += `
+                        <div style="margin-left:10px; margin-top:6px; display:flex; justify-content:space-between;">
+                            <b>${main}</b>
+                            <b>${totalCount}x / ${totalVolume}ml</b>
+                       </div>`;
+
+                    // Unterkategorien: normal, nur Anzahl/Volumen
+                    for (let sub in mainObj) {
+                        let subEntry = mainObj[sub];
+                        content.innerHTML += `
+                           <div style="margin-left:25px; display:flex; justify-content:space-between; margin-top:2px;">
+                                <span>${sub}</span>
+                                <span>${subEntry.count}x / ${subEntry.volume * subEntry.count}ml</span>
+                            </div>`;
+                    }
+                });
+
+                if(idx < periods.length-1) content.innerHTML += `<hr style="margin:15px 0;">`;
+            });
+        }
+    };
+}
+
+function accumulateStructured(statObj, entry) {
+    let main;
+    if (entry.name.startsWith("Bier") || entry.name.startsWith("Weißbier")) main = "Bier";
+    else if (
+        entry.name.startsWith("Weißwein") || entry.name.startsWith("Rotwein") ||
+        entry.name.startsWith("Roséwein") || entry.name.startsWith("Schaumwein") ||
+        entry.name.startsWith("Spritzer")
+    ) main = "Wein";
+    else if (
+        entry.name.startsWith("Schnaps") || entry.name.startsWith("Likör") ||
+        entry.name.startsWith("Jägermeister") || entry.name.startsWith("Jaga Muuh")
+    ) main = "Schnaps";
+    else main = "Longdrink";
+
+    if (!statObj[main]) statObj[main] = {};
+    const sub = entry.name + ` ${entry.volume}ml`;
+    if (!statObj[main][sub]) statObj[main][sub] = { count: 0, volume: entry.volume, alcohol: entry.alcohol || 0 };
+    statObj[main][sub].count++;
+}
+
+// ALLE EINTRÄGE LISTE
+function loadList(){
+    const tx=db.transaction("consumptions","readonly");
+    const store=tx.objectStore("consumptions");
+    const list=document.getElementById("drinkList");
+    list.innerHTML="";
+    store.openCursor(null,"prev").onsuccess=function(e){
+        const cursor=e.target.result;
+        if(cursor){
+            const c=cursor.value;
+            const time=new Date(c.timestamp);
+            const dateStr = String(time.getDate()).padStart(2,'0')+"."+String(time.getMonth()+1).padStart(2,'0')+"."+time.getFullYear(); // dd.mm.yyyy
+            const hours = String(time.getHours()).padStart(2,'0'); // 24h
+            const minutes = String(time.getMinutes()).padStart(2,'0');
+            const row=document.createElement("div");
+            row.className="row";
+            row.innerHTML=`<span>${c.name} ${c.volume}ml<br><small>${c.comment}</small></span>
+                           <span>${dateStr} ${hours}:${minutes}</span>`;
+            list.appendChild(row);
+            cursor.continue();
+        }
+    };
+}
+
+// BEARBEITEN LISTE
+function loadEditList(){
+    const tx=db.transaction("consumptions","readonly");
+    const store=tx.objectStore("consumptions");
+    const list=document.getElementById("editList");
+    list.innerHTML="";
+    store.openCursor(null,"prev").onsuccess=function(e){
+        const cursor=e.target.result;
+        if(cursor){
+            const c=cursor.value;
+            const time=new Date(c.timestamp);
+            const dateStr = String(time.getDate()).padStart(2,'0')+"."+String(time.getMonth()+1).padStart(2,'0')+"."+time.getFullYear(); // dd.mm.yyyy
+            const hours = String(time.getHours()).padStart(2,'0'); // 24h
+            const minutes = String(time.getMinutes()).padStart(2,'0');
+            const row=document.createElement("div");
+            row.className="row";
+            row.innerHTML=`
+                <span>${c.name} ${c.volume}ml<br>
+                <small>${c.comment}<br>${dateStr} ${hours}:${minutes}</small></span>
+            `;
+            const del=document.createElement("button");
+            del.className="danger";
+            del.textContent="Löschen";
+            del.onclick=()=>deleteEntry(c.id);
+            row.appendChild(del);
+            list.appendChild(row);
+            cursor.continue();
+        }
+    };
+}
+
+function deleteEntry(id){
+    const tx=db.transaction("consumptions","readwrite");
+    tx.objectStore("consumptions").delete(id);
+    tx.oncomplete=loadEditList;
+}
+</script>
+
+</body>
+</html>
